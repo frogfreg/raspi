@@ -10,26 +10,51 @@ import (
 )
 
 func main() {
-	r := raspi.NewAdaptor()
-	led := gpio.NewLedDriver(r, "37")
+	servo()
+}
 
-	work := func() {
+func newLedWork(ld *gpio.LedDriver) func() {
+	return func() {
 		gobot.Every(1*time.Second, func() {
 			fmt.Println("toggling led...")
-			if err := led.Toggle(); err != nil {
+			if err := ld.Toggle(); err != nil {
 				panic(err)
 			}
 			fmt.Println("after toggling light")
 		})
 	}
 
+}
+
+func servo() {
+	r := raspi.NewAdaptor()
+	sd := gpio.NewServoDriver(r, "12")
+
+	work := func() {
+		for {
+			if err := sd.ToMin(); err != nil {
+				panic(err)
+			}
+			time.Sleep(1 * time.Second)
+			if err := sd.ToCenter(); err != nil {
+				panic(err)
+			}
+			time.Sleep(1 * time.Second)
+			if err := sd.ToMax(); err != nil {
+				panic(err)
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}
+
 	robot := gobot.NewRobot("bot",
 		[]gobot.Connection{r},
-		[]gobot.Device{led},
+		[]gobot.Device{sd},
 		work,
 	)
 
 	if err := robot.Start(); err != nil {
 		panic(err)
 	}
+
 }
